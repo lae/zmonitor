@@ -1,4 +1,11 @@
+# List Zabbix credentials here, in the following format
+#
+# instance_name:
+#   url: location of zabbix api
+#   user: self-explanatory
+#   password: self-explanatory
+
 zabbix:
-  url: "http://example.com/api_jsonrpc.php"
-  login: admin
+  url: "http://localhost/api_jsonrpc.php"
+  user: admin
   password: zabbix
