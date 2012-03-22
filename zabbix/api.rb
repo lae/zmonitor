@@ -3,12 +3,14 @@
 require 'json'
 require 'net/http'
 require 'net/https'
+require 'yaml'
 
 module Zabbix
   class API
-    attr_accessor :api
+#    attr_accessor :api
 
     def initialize( api_url, api_user, api_pass )
+      @api = Hash.new()
       @api['url']	= api_url
       @api['user']	= api_user
       @api['password']	= api_pass
@@ -32,52 +34,48 @@ module Zabbix
     end
 
     def call_api(message)
-      id = rand 100000
-
-      message['id'] = id if message['id'].nil?
+      # Finish preparing the JSON call
+      message['id'] = rand 100000 if message['id'].nil?
       message['jsonrpc'] = '2.0'
-      jsonmsg = JSON.generate(msg)
+      message['auth'] = check_auth(message)
+      json_message = JSON.generate(message)
 
-      uri = URI.parse(@api_url)
-      http = Net::HTTP.new(uri.host, uri.port)
-
-      if ( uri.scheme == "https" ) then
-        http.use_ssl = true
-        http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      # Open TCP connection to Zabbix master
+      connection = Net::HTTP.new(@api['uri'].host, @api['uri'].port)
+      if @api['usessl'] then
+        connection.use_ssl = true
+        connection.verify_mode = OpenSSL::SSL::VERIFY_NONE
       end
 
-      request = Net::HTTP::Post.new(uri.request_uri)
+      # Build POST request for sending
+      request = Net::HTTP::Post.new(@api['uri'].request_uri)
       request.add_field('Content-Type', 'application/json-rpc')
-      request.body=(jsonmsg)
+      request.body = json_message
 
       begin
         puts "Sending request with body => #{request.body}" if @debug
-        response = http.request(request)
+        response = connection.request(request)
       rescue ::SocketError => e
-        puts "ERROR sending request: SocketError => #{e.message}" if @debug
+        puts "[ERROR] Could not complete request: SocketError => #{e.message}" if @debug
         raise SocketError.new(e.message)
       end
 
       puts "Request created: #{response}" if @debug
 
-      if response.code != "200"
-        raise ResponseCodeError.new("Did not receive 200 OK from #{@api_url}, but #{response.code}")
-      end
+      raise ResponseCodeError.new("[ERROR] Did not receive 200 OK, but #{response.code}") if response.code != "200"
 
       parsed_response = JSON.parse(response.body)
 
-      if error = parsed_response['error']
-        raise ResponseError.new("Received error from Zabbix: code => #{error['code'].to_s}; message => #{error['message']}; data => #{error['data']}")
-      end
+      raise ResponseError.new("[ERROR] Received invalid response: code => #{error['code'].to_s}; message => #{error['message']}; data => #{error['data']}") if error = parsed_response['error']
 
       return parsed_response['result']
     end
 
-    def check_auth()
-      if @session_id == "0" and msg['method'] != "user.login"
-        raise NotAuthorizedError.new("Cannot perform request without authorization. jsonmsg => #{message}")
+    def check_auth(message)
+      if @session_id == "0" and message['method'] != "user.login"
+        raise NotAuthorizedError.new("[WARNING] Cannot perform request without authorization. jsonmsg => #{message}")
       else
-        msg['auth'] = @session_id if msg['method'] != "user.login"
+        return @session_id if message['method'] != "user.login"
       end
     end
 
@@ -91,26 +89,33 @@ module Zabbix
         },
         'id' => 1
       }
-      result = call(login_request)
-      puts "Successfully logged in as ${@api['user']}! result => #{result}" if @debug
+      result = call_api(login_request)
+      puts "[INFO] Successfully logged in as ${@api['user']}! result => #{result}" if @debug
 
       return result
     end
   end
 end
 
-@session_id = login()
+# Testing
+
+config = YAML::load(open('../config.yml'))
+monitor = Zabbix::API.new(config["zabbix"]["url"], config["zabbix"]["username"], config["zabbix"]["password"])
+monitor.login
 
 alert_request = {
-  'method' => 'alert.get',
+  'method' => 'event.get',
   'params' =>
   {
+    'time_from' => `date --date="1 hour ago" +%s`,
+    'time_till' => `date +%s`,
     'sortfield' => 'clock',
-    'limit' => '100',
+    'sortorder' => 'desc',
+#    'limit' => '100',
     'output' => 'extend',
   }
 }
 
-last_hundred_alerts = call(alert_request)
+last_hundred_alerts = monitor.call_api(alert_request)
 
-puts last_hundred_alerts
+puts JSON.pretty_generate(last_hundred_alerts)
