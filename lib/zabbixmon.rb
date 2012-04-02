@@ -1,7 +1,7 @@
 #!/usr/bin/ruby
 
 require 'yaml'
-require 'zabbix/api'
+require './zabbix/api'
 
 config = YAML::load(open('./config.yml'))
 
