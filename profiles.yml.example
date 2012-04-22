@@ -7,5 +7,5 @@
 
 zabbix:
   url: "http://localhost/api_jsonrpc.php"
-  user: admin
+  user: Admin
   password: zabbix
