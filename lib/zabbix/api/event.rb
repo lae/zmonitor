@@ -14,9 +14,19 @@ module Zabbix
       request = { 'method' => 'event.get', 'params' => options }
       return call_api(request)
     end
-    def get_last_by_trigger( triggerid )
-      request = { 'method' => 'event.get', 'params' => { 'triggerids' => triggerid.to_s, 'output' => 'extend' } }
-      return call_api(request)[0]
+    def get_last_by_trigger( triggerid = '' )
+      request = {
+        'method' => 'event.get',
+        'params' =>
+        {
+          'triggerids' => triggerid.to_s,
+          'sortfield' => 'clock',
+          'sortorder' => 'DESC',
+          'limit' => '1',
+          'output' => 'extend'
+        }
+      }
+      return call_api(request)
     end
     def acknowledge( events = [], message = "#{@parent.whoami} is working on this." )
       request = { 'method' => 'event.acknowledge', 'params' => { 'eventids' => events, 'message' => message } }
