@@ -10,8 +10,17 @@ module Zabbix
     def call_api(message)
       return @parent.call_api(message)
     end
-    def get()
-#      return result
+    def get( options = {} )
+      request = { 'method' => 'event.get', 'params' => options }
+      return call_api(request)
+    end
+    def get_last_by_trigger( triggerid )
+      request = { 'method' => 'event.get', 'params' => { 'triggerids' => triggerid.to_s, 'output' => 'extend' } }
+      return call_api(request)[0]
+    end
+    def acknowledge( events = [], message = "#{@parent.whoami} is working on this." )
+      request = { 'method' => 'event.acknowledge', 'params' => { 'eventids' => events, 'message' => message } }
+      call_api(request)
     end
   end
 end
