@@ -9,7 +9,7 @@ a bit more work than what's probably currently here.
 
 Edit profiles.yml with your correct login credentials (copy from profiles.yml.example).
 
-In the directory you have your profiles.yml located in, run zabbixmon.rb:
+In the directory you have your profiles.yml located in, run zmonitor:
 
     cd zabbixmonitor
-    ./lib/zabbixmon.rb
+    ruby bin/zmonitor
