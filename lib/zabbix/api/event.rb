@@ -28,7 +28,7 @@ module Zabbix
           'output' => 'extend'
         }
       }
-      return call_api(request)
+      return call_api(request)[0]
     end
     # Mark an event acknowledged and leave a message
     def acknowledge( events = [], message = "#{@parent.whoami} is working on this." )
