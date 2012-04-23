@@ -26,6 +26,8 @@ module Zabbix
       # Parse the URL beforehand
       @server = URI.parse(server)
       @verbose = verbose
+
+      # set up API class methods
       @event = Zabbix::Event.new(self)
       @trigger = Zabbix::Trigger.new(self)
       @user = Zabbix::User.new(self)
@@ -41,16 +43,17 @@ module Zabbix
 
     def call_api(message)
       # Finish preparing the JSON call
-      message['id'] = rand 100000 if message['id'].nil?
+      message['id'] = rand 65536 if message['id'].nil?
       message['jsonrpc'] = '2.0'
       # Check if we have authorization token
       if @authtoken.nil? && message['method'] != 'user.login'
-        raise NotAuthorisedError.new("[ERROR] Authorisation Token not initialised. message => #{message}")
+        puts "[ERROR] Authorisation Token not initialised. message => #{message}"
+        raise NotAuthorisedError.new()
       else
         message['auth'] = @authtoken if message['method'] != 'user.login'
       end
 
-      json_message = JSON.generate(message)
+      json_message = JSON.generate(message) # Create a JSON string
 
       # Open TCP connection to Zabbix master
       connection = Net::HTTP.new(@server.host, @server.port)
