@@ -11,7 +11,7 @@ module Zabbix
   end
 end
 
-# load up the different API functions
+# load up the different API classes and methods
 require_relative 'api/event'
 require_relative 'api/trigger'
 require_relative 'api/user'
@@ -32,6 +32,7 @@ module Zabbix
       @event = Zabbix::Event.new(self)
       @trigger = Zabbix::Trigger.new(self)
 
+      # Login, and save identification information for this object
       @authtoken = self.user.login(user, password)
       @whoami = self.user.get_fullname()
     end
@@ -48,7 +49,7 @@ module Zabbix
       # Finish preparing the JSON call
       message['id'] = rand 65536 if message['id'].nil?
       message['jsonrpc'] = '2.0'
-      # Check if we have authorization token
+      # Check if we have authorization token if we're not logging in
       if @authtoken.nil? && message['method'] != 'user.login'
         puts "[ERROR] Authorisation Token not initialised. message => #{message}"
         raise NotAuthorisedError.new()
@@ -83,6 +84,7 @@ module Zabbix
       puts "[INFO] Received response: #{response}" if @verbose
       raise ResponseCodeError.new("[ERROR] Did not receive 200 OK, but HTTP code #{response.code}") if response.code != "200"
 
+      # Check for an error, and return the parsed result if everything's fine
       parsed_response = JSON.parse(response.body)
       if error = parsed_response['error']
         raise ResponseError.new("[ERROR] Received error response: code => #{error['code'].to_s}; message => #{error['message']}; data => #{error['data']}")

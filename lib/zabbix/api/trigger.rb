@@ -10,10 +10,12 @@ module Zabbix
     def call_api(message)
       return @parent.call_api(message)
     end
+    # General trigger.get
     def get( options = {} )
       request = { 'method' => 'trigger.get', 'params' => options }
       return call_api(request)
     end
+    # Get a hash of all unresolved problem triggers
     def get_active( min_severity = 2 )
       request = {
         'method' => 'trigger.get',
