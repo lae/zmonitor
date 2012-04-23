@@ -46,6 +46,8 @@ triggers.each do |t|
   }
 end
 
+current_events = current_events.sort_by { |t| [ -t[:severity], -t[:time] ] }
+
 puts "\e[H\e[2J"
 
 puts current_time
