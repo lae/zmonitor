@@ -21,7 +21,7 @@ module Zabbix
         'method' => 'event.get',
         'params' =>
         {
-          'triggerids' => triggerid.to_s,
+          'triggerids' => [triggerid.to_s],
           'sortfield' => 'clock',
           'sortorder' => 'DESC',
           'limit' => '1',
