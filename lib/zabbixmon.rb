@@ -51,17 +51,39 @@ end
 
 if $ackpattern.nil?
   while true
+    max_lines = `tput lines`.to_i - 1
     eventlist = get_events()
-    puts "\e[H\e[2J"
-    #lines = `tput lines`.to_i
-    puts eventlist
+    pretty_output = ['%s' % Time.now]
+    max_host_length = eventlist.each.max { |a,b| a[:hostname].length <=> b[:hostname].length }[:hostname].length
+    eventlist.each do |e|
+      desc = e[:description]
+      case e[:severity]
+      when 5
+        sev = 'Disaster'.bold.red
+        desc = desc.bold.red
+      when 4
+        sev = 'High'.red
+        desc = desc.red
+      when 3
+        sev = 'Warning'.yellow
+        desc = desc.yellow
+      when 2
+        sev = 'Average'.green
+        desc = desc.green
+      else sev = 'Unknown'
+      end
+      sev = '[%17s]' % sev
+      pretty_output << "%s %s\t%#{max_host_length}s\t%s" % [ sev, e[:fuzzytime], e[:hostname], desc ] if pretty_output.length < max_lines
+    end
+    print "\e[H\e[2J" # clear terminal screen
+    puts pretty_output
     sleep(10)
   end
 else
   puts 'Retrieving list of active triggers that match: '.bold.blue + '%s'.green % $ackpattern, ''
   filtered = []
   eventlist = get_events()
-  eventlist.each { |t| filtered << t if t[:hostname] =~ /#{$ackpattern}/ or t[:description] =~ /#{$ackpattern}/ and t[:acknowledged] == 0 }
+  eventlist.each { |e| filtered << e if e[:hostname] =~ /#{$ackpattern}/ or e[:description] =~ /#{$ackpattern}/ and e[:acknowledged] == 0 }
   filtered.each.with_index do |a,i|
     message = '%s - %s (%s)' % [ a[:fuzzytime], a[:description], a[:hostname] ]
     message = message.bold.red if a[:severity] == 5
