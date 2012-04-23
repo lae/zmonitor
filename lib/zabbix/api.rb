@@ -18,19 +18,22 @@ require_relative 'api/user'
 
 module Zabbix
   class API
-    attr_accessor :server, :verbose, :authtoken
+    attr_accessor :server, :verbose, :authtoken, :whoami
 
     attr_accessor :event, :trigger, :user # API classes
 
-    def initialize( server = "http://localhost", verbose = false )
+    def initialize( server = "http://localhost", user = "Admin", password = "zabbix", verbose = false)
       # Parse the URL beforehand
       @server = URI.parse(server)
       @verbose = verbose
 
       # set up API class methods
+      @user = Zabbix::User.new(self)
       @event = Zabbix::Event.new(self)
       @trigger = Zabbix::Trigger.new(self)
-      @user = Zabbix::User.new(self)
+
+      @authtoken = self.user.login(user, password)
+      @whoami = self.user.get_fullname()
     end
 
     # More specific error names, may add extra handling procedures later
