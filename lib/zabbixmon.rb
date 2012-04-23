@@ -25,6 +25,8 @@ end
 
 config = YAML::load(open('profiles.yml'))
 monitor = Zabbix::API.new(config[profile]["url"], config[profile]["user"], config[profile]["password"])
+
+while true
 current_time = Time.now.to_i
 triggers = monitor.trigger.get_active(2)
 
@@ -44,8 +46,13 @@ triggers.each do |t|
   }
 end
 
+puts "\e[H\e[2J"
+
 puts current_time
 puts current_events
+
+sleep(10)
+end
 #event = monitor.event.get_last_by_trigger 13053
 #monitor.event.acknowledge([event["eventid"]])
 #monitor.event.acknowledge([monitor.event.get_last_by_trigger()["eventid"]])
