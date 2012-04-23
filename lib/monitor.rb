@@ -5,7 +5,7 @@ require 'colored'
 require 'yaml'
 require 'optparse'
 
-require_relative 'zabbix/api'
+require_relative 'api'
 require_relative 'misc'
 
 default_profile='localhost'
