@@ -55,6 +55,7 @@ if $ackpattern.nil?
     eventlist = get_events()
     pretty_output = ['%s' % Time.now]
     max_host_length = eventlist.each.max { |a,b| a[:hostname].length <=> b[:hostname].length }[:hostname].length
+    max_desc_length = eventlist.each.max { |a,b| a[:description].length <=> b[:description].length }[:description].length
     eventlist.each do |e|
       desc = e[:description]
       case e[:severity]
@@ -73,7 +74,9 @@ if $ackpattern.nil?
       else sev = 'Unknown'
       end
       sev = '[%17s]' % sev
-      pretty_output << "%s %s\t%#{max_host_length}s\t%s" % [ sev, e[:fuzzytime], e[:hostname], desc ] if pretty_output.length < max_lines
+      ack = "No"
+      ack = "Yes" if e[:acknowledged] == 1
+      pretty_output << "%s %s\t%#{max_host_length}s\t%#{max_desc_length}s\tAck: %s" % [ sev, e[:fuzzytime], e[:hostname], desc, ack ] if pretty_output.length < max_lines
     end
     print "\e[H\e[2J" # clear terminal screen
     puts pretty_output
