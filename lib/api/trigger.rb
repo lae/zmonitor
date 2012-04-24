@@ -23,10 +23,12 @@ module Zabbix
           'sortfield' => 'priority,lastchange',
           'sortorder' => 'desc',
           'templated' => '0',
-          'filter' => { 'value' => ['1'] },
+          'filter' => { 'value' => '1', 'status' => '0' },
           'expandData' => 'host',
           'expandDescription' => '1',
           'min_severity' => min_severity.to_s,
+          'select_hosts' => 'extend',
+          'select_items' => 'extend',
           'output' => 'extend'
         }
       }

@@ -33,6 +33,7 @@ def get_events()
   triggers = $monitor.trigger.get_active(2) # Call the API for a list of active triggers
   current_events = []
   triggers.each do |t|
+    next if t['hosts'][0]['status'] == '1' or t['items'][0]['status'] == '1' # skip disabled items/hosts that the api call returns
     event = $monitor.event.get_last_by_trigger(t['triggerid'])
     current_events << {
       :id => t['triggerid'].to_i,
