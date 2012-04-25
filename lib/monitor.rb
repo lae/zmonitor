@@ -80,7 +80,7 @@ if $ackpattern.nil?
     sleep(10)
   end
 else
-  puts 'Retrieving list of active triggers that match: '.bold.blue + '%s'.green % $ackpattern, ''
+  puts 'Retrieving list of active unacknowledged triggers that match: '.bold.blue + '%s'.green % $ackpattern, ''
   filtered = []
   eventlist = get_events()
   eventlist.each do |e|
@@ -93,24 +93,22 @@ else
   end
   abort("No alerts found, so aborting".yellow) if filtered.length == 0
   filtered.each.with_index do |a,i|
-    message = '%s - %s (%s)' % [ a[:fuzzytime], a[:description], a[:hostname] ]
-    message = message.bold.red if a[:severity] == 5
-    message = message.red if a[:severity] == 4
-    message = message.yellow if a[:severity] == 3
-    message = message.green if a[:severity] == 2
-    puts "%8d > ".bold % (i+1) + message
+    message = '%s - %s (%s)'.color_by_severity(a[:severity]) % [ a[:fuzzytime], a[:description], a[:hostname] ]
+    puts "%8d >".bold % (i+1) + message
   end
 
   print "\n  Select > ".bold
   input = STDIN.gets.chomp()
 
-  raise StandardError.new('No input. Not acknowledging anything.'.green) if input == ''
+  no_ack_msg = "Not acknowledging anything."
+  raise StandardError.new('No input. #{no_ack_msg}'.green) if input == ''
   to_ack = (1..filtered.length).to_a if input == "all" # only string we'll accept
-  raise StandardError.new('Invalid input. Not acknowledging anything.'.red) if to_ack.nil? and (input =~ /^([0-9 ]+)$/).nil?
+  raise StandardError.new('Invalid input. #{no_ack_msg}'.red) if to_ack.nil? and (input =~ /^([0-9 ]+)$/).nil?
   to_ack = input.split.map(&:to_i).sort if to_ack.nil? # Split our input into a sorted array of integers
   # Let's first check if a value greater than possible was given, to help prevent typos acknowledging the wrong thing
-  to_ack.each { |i| raise StandardError.new('There isn\'t anything to acknowledge above %d!'.yellow % filtered.length) if i > filtered.length }
+  to_ack.each { |i| raise StandardError.new('You entered a value greater than %d! Please double check. #{no_ack_msg}'.yellow % filtered.length) if i > filtered.length }
 
+  puts  '', '           Enter an acknowledgement message below, or leave blank for the default.', ''
   print " Message > ".bold
   message = STDIN.gets.chomp()
   puts
