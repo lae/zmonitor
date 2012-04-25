@@ -9,12 +9,13 @@ require_relative 'api'
 require_relative 'misc'
 
 default_profile='localhost'
+maintenance=false
 
 OptionParser.new do |o|
   o.banner = "usage: zabbixmon.rb [options]"
   o.on('--profile PROFILE', '-p', "Choose a different Zabbix profile. Current default is #{default_profile}") { |p| $profile = p }
   o.on('--ack MATCH', '-a', "Acknowledge current events that match a pattern MATCH. No wildcards.") { |a| $ackpattern = a.tr('^ A-Za-z0-9[]{},-', '') }
-  o.on('--disable-maintenance', '-m', "Filter out servers marked as being in maintenance.") { |m| $maintenance = m }
+  o.on('--disable-maintenance', '-m', "Filter out servers marked as being in maintenance.") { |m| maintenance = m }
   o.on('-h', 'Show this help') { puts '',o,''; exit }
   o.parse!
 end
@@ -26,7 +27,7 @@ if config[$profile].nil?
   $profile = default_profile
   raise StandardError.new('Default profile is missing! Please double check your configuration.'.red) if config[$profile].nil?
 end
-abort($maintenance.to_s)
+
 $monitor = Zabbix::API.new(config[$profile]["url"], config[$profile]["user"], config[$profile]["password"])
 
 def get_events(lines = 0)
@@ -40,7 +41,7 @@ def get_events(lines = 0)
     current_events << {
       :id => t['triggerid'].to_i,
       :time => t['lastchange'].to_i,
-      :fuzzytime => current_time - t['lastchange'].to_i,
+      :fuzzytime => fuzz(current_time - t['lastchange'].to_i),
       :severity => t['priority'].to_i,
       :hostname => t['host'],
       :description => t['description']#,
@@ -104,7 +105,7 @@ else
       filtered << e if e[:acknowledged] == 0
     end
   end
-  exit "No alerts found" if filtered.length == 0
+  abort("No alerts found, so aborting".yellow) if filtered.length == 0
   filtered.each.with_index do |a,i|
     message = '%s - %s (%s)' % [ a[:fuzzytime], a[:description], a[:hostname] ]
     message = message.bold.red if a[:severity] == 5
