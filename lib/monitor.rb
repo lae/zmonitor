@@ -12,7 +12,7 @@ default_profile='zabbix'
 $hide_maintenance=0
 
 OptionParser.new do |o|
-  o.banner = "usage: zabbixmon.rb [options]"
+  o.banner = "usage: zmonitor [options]"
   o.on('--profile PROFILE', '-p', "Choose a different Zabbix profile. Current default is #{default_profile}") { |p| $profile = p }
   o.on('--ack MATCH', '-a', "Acknowledge current events that match a pattern MATCH. No wildcards.") { |a| $ackpattern = a.tr('^ A-Za-z0-9[]{},-', '') }
   o.on('--disable-maintenance', '-m', "Filter out servers marked as being in maintenance.") { |m| $hide_maintenance = 1 }
