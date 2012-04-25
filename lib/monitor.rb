@@ -32,19 +32,24 @@ def get_events()
   current_time = Time.now.to_i # to be used in getting accurate event durations
   triggers = $monitor.trigger.get_active(2) # Call the API for a list of active triggers
   current_events = []
-  triggers.each do |t|
+  triggers.each.with_index do |t,i|
     next if t['hosts'][0]['status'] == '1' or t['items'][0]['status'] == '1' # skip disabled items/hosts that the api call returns
-    event = $monitor.event.get_last_by_trigger(t['triggerid'])
+#    event = $monitor.event.get_last_by_trigger(t['triggerid'])
     current_events << {
       :id => t['triggerid'].to_i,
       :time => t['lastchange'].to_i,
       :fuzzytime => fuzz(current_time - t['lastchange'].to_i),
       :severity => t['priority'].to_i,
       :hostname => t['host'],
-      :description => t['description'],
-      :eventid => event['eventid'].to_i,
-      :acknowledged => event['acknowledged'].to_i
+      :description => t['description']#,
+#      :eventid => event['eventid'].to_i,
+#      :acknowledged => event['acknowledged'].to_i
     }
+    unless $ackpattern.nil?
+      event = $monitor.event.get_last_by_trigger(t['triggerid'])
+      current_events[i][:eventid] = event['eventid'].to_i
+      current_events[i][:acknowledged] = event['acknowledged'].to_i
+    end
   end
   # Sort the events decreasing by severity, and then descending by duration (smaller timestamps at top)
   return current_events.sort_by { |t| [ -t[:severity], t[:time] ] }
@@ -78,8 +83,8 @@ if $ackpattern.nil?
     end
     max_desc_length = eventlist.each.max { |a,b| a[:description].length <=> b[:description].length }[:description].length
     eventlist.each do |e|
-      ack = "No"
-      ack = "Yes" if e[:acknowledged] == 1
+      ack = "N/A"
+ #     ack = "Yes" if e[:acknowledged] == 1
       pretty_output << "%s %s\t%-#{max_host_length}s\t%-#{max_desc_length}s\tAck: %s" % [ e[:severity], e[:fuzzytime], e[:hostname], e[:description], ack ] if pretty_output.length < max_lines
     end
     print "\e[H\e[2J" # clear terminal screen
