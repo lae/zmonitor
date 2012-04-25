@@ -13,7 +13,8 @@ default_profile='localhost'
 OptionParser.new do |o|
   o.banner = "usage: zabbixmon.rb [options]"
   o.on('--profile PROFILE', '-p', "Choose a different Zabbix profile. Current default is #{default_profile}") { |p| $profile = p }
-  o.on('--ack MATCH', '-a', "Acknowledge current events that match a pattern MATCH. No wildcards.") { |a| $ackpattern = a.tr('^A-Za-z0-9[]{},-', '') }
+  o.on('--ack MATCH', '-a', "Acknowledge current events that match a pattern MATCH. No wildcards.") { |a| $ackpattern = a.tr('^ A-Za-z0-9[]{},-', '') }
+  o.on('--disable-maintenance', '-m', "Filter out servers marked as being in maintenance.") { |m| $maintenance = m }
   o.on('-h', 'Show this help') { puts '',o,''; exit }
   o.parse!
 end
@@ -25,40 +26,40 @@ if config[$profile].nil?
   $profile = default_profile
   raise StandardError.new('Default profile is missing! Please double check your configuration.'.red) if config[$profile].nil?
 end
-
+abort($maintenance.to_s)
 $monitor = Zabbix::API.new(config[$profile]["url"], config[$profile]["user"], config[$profile]["password"])
 
-def get_events()
+def get_events(lines = 0)
   current_time = Time.now.to_i # to be used in getting accurate event durations
   triggers = $monitor.trigger.get_active(2) # Call the API for a list of active triggers
   current_events = []
   triggers.each.with_index do |t,i|
     next if t['hosts'][0]['status'] == '1' or t['items'][0]['status'] == '1' # skip disabled items/hosts that the api call returns
+#    break if current_events.length == lines and lines > 0 # don't process any more triggers if we have a limit.
 #    event = $monitor.event.get_last_by_trigger(t['triggerid'])
     current_events << {
       :id => t['triggerid'].to_i,
       :time => t['lastchange'].to_i,
-      :fuzzytime => fuzz(current_time - t['lastchange'].to_i),
+      :fuzzytime => current_time - t['lastchange'].to_i,
       :severity => t['priority'].to_i,
       :hostname => t['host'],
       :description => t['description']#,
 #      :eventid => event['eventid'].to_i,
 #      :acknowledged => event['acknowledged'].to_i
     }
-    unless $ackpattern.nil?
-      event = $monitor.event.get_last_by_trigger(t['triggerid'])
-      current_events[i][:eventid] = event['eventid'].to_i
-      current_events[i][:acknowledged] = event['acknowledged'].to_i
-    end
+#      p defined?(current_events) unless $ackpattern.nil?
   end
+  puts current_time
+#  puts current_events
+#  exit
   # Sort the events decreasing by severity, and then descending by duration (smaller timestamps at top)
   return current_events.sort_by { |t| [ -t[:severity], t[:time] ] }
 end
 
 if $ackpattern.nil?
   while true
-    max_lines = `tput lines`.to_i - 1
-    eventlist = get_events()
+    max_lines = `tput lines`.to_i - 2
+    eventlist = get_events(max_lines)
     pretty_output = ['%s' % Time.now]
     max_host_length = eventlist.each.max { |a,b| a[:hostname].length <=> b[:hostname].length }[:hostname].length
     eventlist.each do |e|
@@ -85,7 +86,7 @@ if $ackpattern.nil?
     eventlist.each do |e|
       ack = "N/A"
  #     ack = "Yes" if e[:acknowledged] == 1
-      pretty_output << "%s %s\t%-#{max_host_length}s\t%-#{max_desc_length}s\tAck: %s" % [ e[:severity], e[:fuzzytime], e[:hostname], e[:description], ack ] if pretty_output.length < max_lines
+      pretty_output << "%s %s\t%-#{max_host_length}s\t%-#{max_desc_length}s\tAck: %s" % [ e[:severity], e[:fuzzytime], e[:hostname], e[:description], ack ] if pretty_output.length
     end
     print "\e[H\e[2J" # clear terminal screen
     puts pretty_output
@@ -95,7 +96,15 @@ else
   puts 'Retrieving list of active triggers that match: '.bold.blue + '%s'.green % $ackpattern, ''
   filtered = []
   eventlist = get_events()
-  eventlist.each { |e| filtered << e if e[:hostname] =~ /#{$ackpattern}/ or e[:description] =~ /#{$ackpattern}/ and e[:acknowledged] == 0 }
+  eventlist.each do |e|
+    if e[:hostname] =~ /#{$ackpattern}/ or e[:description] =~ /#{$ackpattern}/
+      event = $monitor.event.get_last_by_trigger(e[:id])
+      e[:eventid] = event['eventid'].to_i
+      e[:acknowledged] = event['acknowledged'].to_i
+      filtered << e if e[:acknowledged] == 0
+    end
+  end
+  exit "No alerts found" if filtered.length == 0
   filtered.each.with_index do |a,i|
     message = '%s - %s (%s)' % [ a[:fuzzytime], a[:description], a[:hostname] ]
     message = message.bold.red if a[:severity] == 5
