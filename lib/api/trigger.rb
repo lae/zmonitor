@@ -16,7 +16,7 @@ module Zabbix
       return call_api(request)
     end
     # Get a hash of all unresolved problem triggers
-    def get_active( min_severity = 2 )
+    def get_active( min_severity = 2, maint = 0 )
       request = {
         'method' => 'trigger.get',
         'params' => {
@@ -32,6 +32,7 @@ module Zabbix
           'output' => 'extend'
         }
       }
+      request['params']['maintenance'] = 0 if maint == 1
       return call_api(request)
     end
   end

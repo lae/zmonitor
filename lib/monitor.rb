@@ -9,13 +9,13 @@ require_relative 'api'
 require_relative 'misc'
 
 default_profile='localhost'
-maintenance=false
+$hide_maintenance=0
 
 OptionParser.new do |o|
   o.banner = "usage: zabbixmon.rb [options]"
   o.on('--profile PROFILE', '-p', "Choose a different Zabbix profile. Current default is #{default_profile}") { |p| $profile = p }
   o.on('--ack MATCH', '-a', "Acknowledge current events that match a pattern MATCH. No wildcards.") { |a| $ackpattern = a.tr('^ A-Za-z0-9[]{},-', '') }
-  o.on('--disable-maintenance', '-m', "Filter out servers marked as being in maintenance.") { |m| maintenance = m }
+  o.on('--disable-maintenance', '-m', "Filter out servers marked as being in maintenance.") { |m| $hide_maintenance = 1 }
   o.on('-h', 'Show this help') { puts '',o,''; exit }
   o.parse!
 end
@@ -30,9 +30,9 @@ end
 
 $monitor = Zabbix::API.new(config[$profile]["url"], config[$profile]["user"], config[$profile]["password"])
 
-def get_events(maint = 1) #TODO: (lines = 0)
+def get_events() #TODO: (lines = 0)
   current_time = Time.now.to_i # to be used in getting event durations, but it really depends on the master
-  triggers = $monitor.trigger.get_active(2) # Call the API for a list of active triggers
+  triggers = $monitor.trigger.get_active(2, $hide_maintenance) # Call the API for a list of active triggers
   current_events = []
   triggers.each do |t|
     next if t['hosts'][0]['status'] == '1' or t['items'][0]['status'] == '1' # skip disabled items/hosts that the api call returns
@@ -57,23 +57,30 @@ if $ackpattern.nil?
   while true
     max_lines = `tput lines`.to_i - 1
     eventlist = get_events #TODO: get_events(max_lines)
-    pretty_output = ['%s' % Time.now]
-    max_hostlen = eventlist.each.max { |a,b| a[:hostname].length <=> b[:hostname].length }[:hostname].length
-    max_desclen = eventlist.each.max { |a,b| a[:description].length <=> b[:description].length }[:description].length
-    eventlist.each do |e|
-      break if pretty_output.length == max_lines
-      ack = "N/A"
-      #ack = "Yes" if e[:acknowledged] == 1
-      sev_label = case e[:severity]
-        when 5; 'Disaster'
-        when 4; 'High'
-        when 3; 'Warning'
-        when 2; 'Average'
-        else 'Unknown'
+    pretty_output = ['Last updated: %s' % Time.now]
+    if eventlist.length != 0
+      max_hostlen = eventlist.each.max { |a,b| a[:hostname].length <=> b[:hostname].length }[:hostname].length
+      max_desclen = eventlist.each.max { |a,b| a[:description].length <=> b[:description].length }[:description].length
+      eventlist.each do |e|
+        break if pretty_output.length == max_lines
+        ack = "N/A"
+        #ack = "Yes" if e[:acknowledged] == 1
+        sev_label = case e[:severity]
+          when 5; 'Disaster'
+          when 4; 'High'
+          when 3; 'Warning'
+          when 2; 'Average'
+          else 'Unknown'
+        end
+        pretty_output << '[' + '%8s'.color_by_severity(e[:severity]) % sev_label + "] %s\t" % e[:fuzzytime] +
+          "%-#{max_hostlen}s\t" % e[:hostname] + "%-#{max_desclen}s".color_by_severity(e[:severity]) % e[:description] +
+          "\tAck: %s" % ack
       end
-      pretty_output << '[' + '%8s'.color_by_severity(e[:severity]) % sev_label + "] %s\t" % e[:fuzzytime] +
-        "%-#{max_hostlen}s\t" % e[:hostname] + "%-#{max_desclen}s".color_by_severity(e[:severity]) % e[:description] +
-        "\tAck: %s" % ack
+    else
+      pretty_output << ['',
+        'The API call returned 0 results. Either your servers are very happy, or ZMonitor is not working correctly.',
+        '', "Please check your dashboard at #{config[$profile]["url"]} to verify activity.", '',
+        'ZMonitor will continue to refresh every ten seconds unless you interrupt it.']
     end
     print "\e[H\e[2J" # clear terminal screen
     puts pretty_output
