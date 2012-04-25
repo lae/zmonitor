@@ -8,7 +8,7 @@ require 'optparse'
 require_relative 'api'
 require_relative 'misc'
 
-default_profile='localhost'
+default_profile='zabbix'
 $hide_maintenance=0
 
 OptionParser.new do |o|
