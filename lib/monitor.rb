@@ -30,11 +30,11 @@ end
 
 $monitor = Zabbix::API.new(config[$profile]["url"], config[$profile]["user"], config[$profile]["password"])
 
-def get_events(lines = 0)
-  current_time = Time.now.to_i # to be used in getting accurate event durations
+def get_events(maint = 1) #TODO: (lines = 0)
+  current_time = Time.now.to_i # to be used in getting event durations, but it really depends on the master
   triggers = $monitor.trigger.get_active(2) # Call the API for a list of active triggers
   current_events = []
-  triggers.each.with_index do |t,i|
+  triggers.each do |t|
     next if t['hosts'][0]['status'] == '1' or t['items'][0]['status'] == '1' # skip disabled items/hosts that the api call returns
 #    break if current_events.length == lines and lines > 0 # don't process any more triggers if we have a limit.
 #    event = $monitor.event.get_last_by_trigger(t['triggerid'])
@@ -44,15 +44,11 @@ def get_events(lines = 0)
       :fuzzytime => fuzz(current_time - t['lastchange'].to_i),
       :severity => t['priority'].to_i,
       :hostname => t['host'],
-      :description => t['description']#,
+      :description => t['description'].gsub(/ (on(| server) |to |)#{t['host']}/, '')#,
 #      :eventid => event['eventid'].to_i,
 #      :acknowledged => event['acknowledged'].to_i
     }
-#      p defined?(current_events) unless $ackpattern.nil?
   end
-  puts current_time
-#  puts current_events
-#  exit
   # Sort the events decreasing by severity, and then descending by duration (smaller timestamps at top)
   return current_events.sort_by { |t| [ -t[:severity], t[:time] ] }
 end
@@ -60,14 +56,15 @@ end
 if $ackpattern.nil?
   while true
     max_lines = `tput lines`.to_i - 1
-    eventlist = get_events(max_lines)
+    eventlist = get_events #TODO: get_events(max_lines)
     pretty_output = ['%s' % Time.now]
     max_host_length = eventlist.each.max { |a,b| a[:hostname].length <=> b[:hostname].length }[:hostname].length
+    max_desc_length = eventlist.each.max { |a,b| a[:description].length <=> b[:description].length }[:description].length
+    puts eventlist, "max_desc_length is " + max_desc_length.to_s, "max_host_length is " + max_host_length.to_s
+
     eventlist.each do |e|
-      desc = e[:description]
       case e[:severity]
-      when 5
-        sev = 'Disaster'.bold.red
+      when 5; e[:seve] = 'Disaster'.bold.red
         desc = desc.bold.red
       when 4
         sev = 'High'.red
@@ -83,7 +80,6 @@ if $ackpattern.nil?
       e[:severity] = '[%17s]' % sev
       e[:description] = desc
     end
-    max_desc_length = eventlist.each.max { |a,b| a[:description].length <=> b[:description].length }[:description].length
     eventlist.each do |e|
       ack = "N/A"
  #     ack = "Yes" if e[:acknowledged] == 1
