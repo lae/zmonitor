@@ -58,32 +58,22 @@ if $ackpattern.nil?
     max_lines = `tput lines`.to_i - 1
     eventlist = get_events #TODO: get_events(max_lines)
     pretty_output = ['%s' % Time.now]
-    max_host_length = eventlist.each.max { |a,b| a[:hostname].length <=> b[:hostname].length }[:hostname].length
-    max_desc_length = eventlist.each.max { |a,b| a[:description].length <=> b[:description].length }[:description].length
-    puts eventlist, "max_desc_length is " + max_desc_length.to_s, "max_host_length is " + max_host_length.to_s
-
+    max_hostlen = eventlist.each.max { |a,b| a[:hostname].length <=> b[:hostname].length }[:hostname].length
+    max_desclen = eventlist.each.max { |a,b| a[:description].length <=> b[:description].length }[:description].length
     eventlist.each do |e|
-      case e[:severity]
-      when 5; e[:seve] = 'Disaster'.bold.red
-        desc = desc.bold.red
-      when 4
-        sev = 'High'.red
-        desc = desc.red
-      when 3
-        sev = 'Warning'.yellow
-        desc = desc.yellow
-      when 2
-        sev = 'Average'.green
-        desc = desc.green
-      else sev = 'Unknown'
-      end
-      e[:severity] = '[%17s]' % sev
-      e[:description] = desc
-    end
-    eventlist.each do |e|
+      break if pretty_output.length == max_lines
       ack = "N/A"
- #     ack = "Yes" if e[:acknowledged] == 1
-      pretty_output << "%s %s\t%-#{max_host_length}s\t%-#{max_desc_length}s\tAck: %s" % [ e[:severity], e[:fuzzytime], e[:hostname], e[:description], ack ] if pretty_output.length < max_lines
+      #ack = "Yes" if e[:acknowledged] == 1
+      sev_label = case e[:severity]
+        when 5; 'Disaster'
+        when 4; 'High'
+        when 3; 'Warning'
+        when 2; 'Average'
+        else 'Unknown'
+      end
+      pretty_output << '[' + '%8s'.color_by_severity(e[:severity]) % sev_label + "] %s\t" % e[:fuzzytime] +
+        "%-#{max_hostlen}s\t" % e[:hostname] + "%-#{max_desclen}s".color_by_severity(e[:severity]) % e[:description] +
+        "\tAck: %s" % ack
     end
     print "\e[H\e[2J" # clear terminal screen
     puts pretty_output
