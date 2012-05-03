@@ -1,4 +1,4 @@
-# zabbixmonitor
+# zmonitor
 
 A command line interface for viewing alerts from a Zabbix instance.
 

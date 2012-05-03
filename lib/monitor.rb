@@ -38,7 +38,6 @@ def get_events() #TODO: (lines = 0)
   triggers.each do |t|
     next if t['hosts'][0]['status'] == '1' or t['items'][0]['status'] == '1' # skip disabled items/hosts that the api call returns
 #    break if current_events.length == lines and lines > 0 # don't process any more triggers if we have a limit.
-#    event = $monitor.event.get_last_by_trigger(t['triggerid'])
     current_events << {
       :id => t['triggerid'].to_i,
       :time => t['lastchange'].to_i,
@@ -46,8 +45,6 @@ def get_events() #TODO: (lines = 0)
       :severity => t['priority'].to_i,
       :hostname => t['host'],
       :description => t['description'].gsub(/ (on(| server) |to |)#{t['host']}/, '')#,
-#      :eventid => event['eventid'].to_i,
-#      :acknowledged => event['acknowledged'].to_i
     }
   end
   current_events.each do |e|
