@@ -33,6 +33,7 @@ $monitor = Zabbix::API.new(config[$profile]["url"], config[$profile]["user"], co
 def get_events() #TODO: (lines = 0)
   current_time = Time.now.to_i # to be used in getting event durations, but it really depends on the master
   triggers = $monitor.trigger.get_active(2, $hide_maintenance) # Call the API for a list of active triggers
+  unacked_triggers = $monitor.trigger.get_active(2, $hide_maintenance, 1) # Call it again to get just those that are unacknowledged
   current_events = []
   triggers.each do |t|
     next if t['hosts'][0]['status'] == '1' or t['items'][0]['status'] == '1' # skip disabled items/hosts that the api call returns
@@ -49,6 +50,10 @@ def get_events() #TODO: (lines = 0)
 #      :acknowledged => event['acknowledged'].to_i
     }
   end
+  current_events.each do |e|
+    s = unacked_triggers.select{ |t| t['triggerid'] == e[:id] }
+    e[:acknowledged] = s[0] ? 1 : 0
+  end
   # Sort the events decreasing by severity, and then descending by duration (smaller timestamps at top)
   return current_events.sort_by { |t| [ -t[:severity], t[:time] ] }
 end
@@ -64,15 +69,15 @@ if $ackpattern.nil?
       eventlist.each do |e|
         break if pretty_output.length == max_lines
         ack = "N/A"
-        #ack = "Yes" if e[:acknowledged] == 1
+        ack = "Yes" if e[:acknowledged] == 1
         sev_label = case e[:severity]
-          when 5; 'Disaster'
-          when 4; 'High'
-          when 3; 'Warning'
-          when 2; 'Average'
-          else 'Unknown'
+          when 5; 'Dstr'
+          when 4; 'Hi'
+          when 3; 'Wrn'
+          when 2; 'Avg'
+          else '???'
         end
-        pretty_output << '[' + '%8s'.color_by_severity(e[:severity]) % sev_label + "] %s\t" % e[:fuzzytime] +
+        pretty_output << '[' + '%4s'.color_by_severity(e[:severity]) % sev_label + "] %s\t" % e[:fuzzytime] +
           "%-#{max_hostlen}s\t" % e[:hostname] + "%-#{max_desclen}s".color_by_severity(e[:severity]) % e[:description] +
           "\tAck: %s" % ack
       end

@@ -16,7 +16,7 @@ module Zabbix
       return call_api(request)
     end
     # Get a hash of all unresolved problem triggers
-    def get_active( min_severity = 2, maint = 0 )
+    def get_active( min_severity = 2, maint = 0, lastack = 0 )
       request = {
         'method' => 'trigger.get',
         'params' => {
@@ -33,6 +33,7 @@ module Zabbix
         }
       }
       request['params']['maintenance'] = 0 if maint == 1
+      request['params']['withLastEventUnacknowledged'] = 1 if lastack == 1
       return call_api(request)
     end
   end
