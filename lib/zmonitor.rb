@@ -29,15 +29,14 @@ module Zabbix
         url = "#{STDIN.gets.chomp()}/api_jsonrpc.php"
         File.new(url_path, "w").write(url)
       end
-      self.api = Zabbix::API.new(url, true)
+      @api = Zabbix::API.new(url)
       self.check_login
       #self.api.whoami = self.api.user.get_fullname()
     end
     def check_login()
       token_path = File.expand_path("~/.zmonitor-token")
       if File.exists?(token_path)
-        self.api.token = File.open(token_path).read()
-        puts self.api.token
+        @api.token = File.open(token_path).read()
       else
         print "Please enter your Zabbix username: "
         user = STDIN.gets.chomp()
@@ -49,14 +48,14 @@ module Zabbix
           system "stty echo"
           puts
         end
-        self.api.token = self.api.user.login(user, password)
+        @api.token = self.api.user.login(user, password)
         File.new(token_path, "w").write(self.api.token)
       end
     end
-    def get_events()
+    def get_events(m = 0)
       current_time = Time.now.to_i # to be used in getting event durations, but it really depends on the master
-      triggers = self.api.trigger.get_active(2, $hide_maintenance) # Call the API for a list of active triggers
-      unacked_triggers = self.api.trigger.get_active(2, $hide_maintenance, 1) # Call it again to get just those that are unacknowledged
+      triggers = @api.trigger.get_active(2, m) # Call the API for a list of active triggers
+      unacked_triggers = @api.trigger.get_active(2, m, 1) # Call it again to get just those that are unacknowledged
       current_events = []
       triggers.each do |t|
         next if t['hosts'][0]['status'] == '1' or t['items'][0]['status'] == '1' # skip disabled items/hosts that the api call returns
@@ -76,10 +75,42 @@ module Zabbix
       # Sort the events decreasing by severity, and then descending by duration (smaller timestamps at top)
       return current_events.sort_by { |t| [ -t[:severity], t[:time] ] }
     end
+    def get_dashboard(m = 0)
+      max_lines = `tput lines`.to_i - 1
+      eventlist = self.get_events(m) #TODO: get_events(max_lines)
+      pretty_output = ['Last updated: %s' % Time.now]
+      if eventlist.length != 0
+        max_hostlen = eventlist.each.max { |a,b| a[:hostname].length <=> b[:hostname].length }[:hostname].length
+        max_desclen = eventlist.each.max { |a,b| a[:description].length <=> b[:description].length }[:description].length
+        eventlist.each do |e|
+          break if pretty_output.length == max_lines
+          ack = "N".red
+          ack = "Y".green if e[:acknowledged] == 1
+          sev_label = case e[:severity]
+            when 5; 'Dstr'
+            when 4; 'Hi'
+            when 3; 'Wrn'
+            when 2; 'Avg'
+            else '???'
+          end
+          pretty_output << '%4s'.color_by_severity(e[:severity]) % sev_label + "%s  " % e[:fuzzytime] +
+            "%-#{max_hostlen}s  " % e[:hostname] + "%-#{max_desclen}s".color_by_severity(e[:severity]) % e[:description] +
+            "  Ack: %s" % ack
+        end
+      else
+        pretty_output << ['',
+          'The API call returned 0 results. Either your servers are very happy, or ZMonitor is not working correctly.',
+          '', "Please check your dashboard at #{@api.server.to_s.gsub(/\/api_jsonrpc.php/, '')} to verify activity.", '',
+          'ZMonitor will continue to refresh every ten seconds unless you interrupt it.']
+      end
+      print "\e[H\e[2J" # clear terminal screen
+      puts pretty_output
+    end
   end
 end
 
 monitor = Zabbix::Monitor.new()
+monitor.get_dashboard(1)
 =begin
 if $ackpattern.nil?
   while true
