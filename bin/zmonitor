@@ -1,3 +1,26 @@
 #!/usr/bin/ruby
 
+require 'optparse'
 require_relative "../lib/zmonitor.rb"
+
+opts = {}
+OptionParser.new do |o|
+  o.banner = "usage: zmonitor [options]"
+  o.on('--ack MATCH', '-a', "Acknowledge current events that match a pattern MATCH. No wildcards.") { |a| opts[:ack] = a.tr('^ A-Za-z0-9[]{}()|,-', '') }
+  o.on('--disable-maintenance', '-m', "Filter out servers marked as being in maintenance.") { |m| opts[:maint] = 1 }
+  o.on('-h', 'Show this help') { puts '',o,''; exit }
+  o.parse!
+end
+
+
+monitor = Zabbix::Monitor.new()
+monitor.hide_maintenance = opts[:maint] unless opts[:maint].nil?
+
+if opts[:ack]
+  puts "hi"
+else
+  while true
+    monitor.get_dashboard()
+    sleep 10
+  end
+end
