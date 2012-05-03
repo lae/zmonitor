@@ -77,9 +77,9 @@ if $ackpattern.nil?
           when 2; 'Avg'
           else '???'
         end
-        pretty_output << '%4s'.color_by_severity(e[:severity]) % sev_label + " %s\t" % e[:fuzzytime] +
-          "%-#{max_hostlen}s\t" % e[:hostname] + "%-#{max_desclen}s".color_by_severity(e[:severity]) % e[:description] +
-          "\tAck: %s" % ack
+        pretty_output << '%4s'.color_by_severity(e[:severity]) % sev_label + " %s  " % e[:fuzzytime] +
+          "%-#{max_hostlen}s  " % e[:hostname] + "%-#{max_desclen}s".color_by_severity(e[:severity]) % e[:description] +
+          "  Ack: %s" % ack
       end
     else
       pretty_output << ['',
