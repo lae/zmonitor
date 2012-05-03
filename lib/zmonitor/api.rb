@@ -18,11 +18,11 @@ require_relative 'api/user'
 
 module Zabbix
   class API
-    attr_accessor :server, :verbose, :authtoken, :whoami
+    attr_accessor :server, :verbose, :token, :whoami
 
     attr_accessor :event, :trigger, :user # API classes
 
-    def initialize( server = "http://localhost", user = "Admin", password = "zabbix", verbose = false)
+    def initialize( server = "http://localhost", verbose = false)
       # Parse the URL beforehand
       @server = URI.parse(server)
       @verbose = verbose
@@ -33,8 +33,8 @@ module Zabbix
       @trigger = Zabbix::Trigger.new(self)
 
       # Login, and save identification information for this object
-      @authtoken = self.user.login(user, password)
-      @whoami = self.user.get_fullname()
+      #@authtoken = self.user.login(user, password)
+      #@whoami = self.user.get_fullname()
     end
 
     # More specific error names, may add extra handling procedures later
@@ -50,11 +50,11 @@ module Zabbix
       message['id'] = rand 65536 if message['id'].nil?
       message['jsonrpc'] = '2.0'
       # Check if we have authorization token if we're not logging in
-      if @authtoken.nil? && message['method'] != 'user.login'
+      if @token.nil? && message['method'] != 'user.login'
         puts "[ERROR] Authorisation Token not initialised. message => #{message}"
         raise NotAuthorisedError.new()
       else
-        message['auth'] = @authtoken if message['method'] != 'user.login'
+        message['auth'] = @token if message['method'] != 'user.login'
       end
 
       json_message = JSON.generate(message) # Create a JSON string

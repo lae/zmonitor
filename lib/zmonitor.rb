@@ -5,56 +5,83 @@ require 'colored'
 require 'yaml'
 require 'optparse'
 
-require_relative 'api'
-require_relative 'misc'
+require_relative 'zmonitor/api'
+require_relative 'zmonitor/misc'
 
-default_profile='zabbix'
 $hide_maintenance=0
 
 OptionParser.new do |o|
   o.banner = "usage: zmonitor [options]"
-  o.on('--profile PROFILE', '-p', "Choose a different Zabbix profile. Current default is #{default_profile}") { |p| $profile = p }
   o.on('--ack MATCH', '-a', "Acknowledge current events that match a pattern MATCH. No wildcards.") { |a| $ackpattern = a.tr('^ A-Za-z0-9[]{}()|,-', '') }
   o.on('--disable-maintenance', '-m', "Filter out servers marked as being in maintenance.") { |m| $hide_maintenance = 1 }
   o.on('-h', 'Show this help') { puts '',o,''; exit }
   o.parse!
 end
 
-$profile = default_profile if $profile.nil?
-config = YAML::load(open('profiles.yml'))
-if config[$profile].nil?
-  puts 'Could not load profile '.yellow + '%s'.red % $profile + '! Trying default profile...'.yellow
-  $profile = default_profile
-  raise StandardError.new('Default profile is missing! Please double check your configuration.'.red) if config[$profile].nil?
+module Zabbix
+  class Monitor
+    attr_accessor :api
+    def initialize()
+      url_path = File.expand_path("~/.zmonitor-server")
+      if File.exists?(url_path)
+        url = File.open(url_path).read()
+      else
+        puts "Where is your Zabbix located? (please include https/http - for example, https://localhost)"
+        url = "#{STDIN.gets.chomp()}/api_jsonrpc.php"
+        File.new(url_path, "w").write(url)
+      end
+      self.api = Zabbix::API.new(url, true)
+      self.check_login
+      #self.api.whoami = self.api.user.get_fullname()
+    end
+    def check_login()
+      token_path = File.expand_path("~/.zmonitor-token")
+      if File.exists?(token_path)
+        self.api.token = File.open(token_path).read()
+        puts self.api.token
+      else
+        print "Please enter your Zabbix username: "
+        user = STDIN.gets.chomp()
+        print "Please enter your Zabbix password: "
+        begin
+          system "stty -echo"
+          password = gets.chomp
+        ensure
+          system "stty echo"
+          puts
+        end
+        self.api.token = self.api.user.login(user, password)
+        File.new(token_path, "w").write(self.api.token)
+      end
+    end
+    def get_events()
+      current_time = Time.now.to_i # to be used in getting event durations, but it really depends on the master
+      triggers = self.api.trigger.get_active(2, $hide_maintenance) # Call the API for a list of active triggers
+      unacked_triggers = self.api.trigger.get_active(2, $hide_maintenance, 1) # Call it again to get just those that are unacknowledged
+      current_events = []
+      triggers.each do |t|
+        next if t['hosts'][0]['status'] == '1' or t['items'][0]['status'] == '1' # skip disabled items/hosts that the api call returns
+        current_events << {
+          :id => t['triggerid'].to_i,
+          :time => t['lastchange'].to_i,
+          :fuzzytime => fuzz(current_time - t['lastchange'].to_i),
+          :severity => t['priority'].to_i,
+          :hostname => t['host'],
+          :description => t['description'].gsub(/ (on(| server) |to |)#{t['host']}/, '')#,
+        }
+      end
+      current_events.each do |e|
+        s = unacked_triggers.select{ |t| t['triggerid'] == "#{e[:id]}" }
+        e[:acknowledged] = s[0] ? 0 : 1
+      end
+      # Sort the events decreasing by severity, and then descending by duration (smaller timestamps at top)
+      return current_events.sort_by { |t| [ -t[:severity], t[:time] ] }
+    end
+  end
 end
 
-$monitor = Zabbix::API.new(config[$profile]["url"], config[$profile]["user"], config[$profile]["password"])
-
-def get_events() #TODO: (lines = 0)
-  current_time = Time.now.to_i # to be used in getting event durations, but it really depends on the master
-  triggers = $monitor.trigger.get_active(2, $hide_maintenance) # Call the API for a list of active triggers
-  unacked_triggers = $monitor.trigger.get_active(2, $hide_maintenance, 1) # Call it again to get just those that are unacknowledged
-  current_events = []
-  triggers.each do |t|
-    next if t['hosts'][0]['status'] == '1' or t['items'][0]['status'] == '1' # skip disabled items/hosts that the api call returns
-#    break if current_events.length == lines and lines > 0 # don't process any more triggers if we have a limit.
-    current_events << {
-      :id => t['triggerid'].to_i,
-      :time => t['lastchange'].to_i,
-      :fuzzytime => fuzz(current_time - t['lastchange'].to_i),
-      :severity => t['priority'].to_i,
-      :hostname => t['host'],
-      :description => t['description'].gsub(/ (on(| server) |to |)#{t['host']}/, '')#,
-    }
-  end
-  current_events.each do |e|
-    s = unacked_triggers.select{ |t| t['triggerid'] == "#{e[:id]}" }
-    e[:acknowledged] = s[0] ? 0 : 1
-  end
-  # Sort the events decreasing by severity, and then descending by duration (smaller timestamps at top)
-  return current_events.sort_by { |t| [ -t[:severity], t[:time] ] }
-end
-
+monitor = Zabbix::Monitor.new()
+=begin
 if $ackpattern.nil?
   while true
     max_lines = `tput lines`.to_i - 1
@@ -132,3 +159,4 @@ else
     end
   end
 end
+=end
