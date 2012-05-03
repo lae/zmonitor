@@ -14,7 +14,7 @@ $hide_maintenance=0
 OptionParser.new do |o|
   o.banner = "usage: zmonitor [options]"
   o.on('--profile PROFILE', '-p', "Choose a different Zabbix profile. Current default is #{default_profile}") { |p| $profile = p }
-  o.on('--ack MATCH', '-a', "Acknowledge current events that match a pattern MATCH. No wildcards.") { |a| $ackpattern = a.tr('^ A-Za-z0-9[]{},-', '') }
+  o.on('--ack MATCH', '-a', "Acknowledge current events that match a pattern MATCH. No wildcards.") { |a| $ackpattern = a.tr('^ A-Za-z0-9[]{}()|,-', '') }
   o.on('--disable-maintenance', '-m', "Filter out servers marked as being in maintenance.") { |m| $hide_maintenance = 1 }
   o.on('-h', 'Show this help') { puts '',o,''; exit }
   o.parse!
@@ -51,7 +51,7 @@ def get_events() #TODO: (lines = 0)
     }
   end
   current_events.each do |e|
-    s = unacked_triggers.select{ |t| t['triggerid'] == e[:id] }
+    s = unacked_triggers.select{ |t| t['triggerid'] == "#{e[:id]}" }
     e[:acknowledged] = s[0] ? 1 : 0
   end
   # Sort the events decreasing by severity, and then descending by duration (smaller timestamps at top)
@@ -68,7 +68,7 @@ if $ackpattern.nil?
       max_desclen = eventlist.each.max { |a,b| a[:description].length <=> b[:description].length }[:description].length
       eventlist.each do |e|
         break if pretty_output.length == max_lines
-        ack = "N/A"
+        ack = "No"
         ack = "Yes" if e[:acknowledged] == 1
         sev_label = case e[:severity]
           when 5; 'Dstr'
