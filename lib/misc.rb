@@ -12,8 +12,9 @@ def fuzz(t)
     amt = eval(unit)
     "%3d#{unit}" % amt
   end.join
-  return "#{fuzzy}"[4..-1] if d == 0
-  return "#{fuzzy}"[0..-5]
+  return "#{fuzzy}"[8..-1] if h == 0
+  return "#{fuzzy}"[4..-5] if d == 0
+  return "#{fuzzy}"[0..-9]
 end
 
 class String
