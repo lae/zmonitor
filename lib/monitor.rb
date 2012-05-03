@@ -52,7 +52,7 @@ def get_events() #TODO: (lines = 0)
   end
   current_events.each do |e|
     s = unacked_triggers.select{ |t| t['triggerid'] == "#{e[:id]}" }
-    e[:acknowledged] = s[0] ? 1 : 0
+    e[:acknowledged] = s[0] ? 0 : 1
   end
   # Sort the events decreasing by severity, and then descending by duration (smaller timestamps at top)
   return current_events.sort_by { |t| [ -t[:severity], t[:time] ] }
