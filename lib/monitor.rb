@@ -68,8 +68,8 @@ if $ackpattern.nil?
       max_desclen = eventlist.each.max { |a,b| a[:description].length <=> b[:description].length }[:description].length
       eventlist.each do |e|
         break if pretty_output.length == max_lines
-        ack = "No"
-        ack = "Yes" if e[:acknowledged] == 1
+        ack = "N".red
+        ack = "Y".green if e[:acknowledged] == 1
         sev_label = case e[:severity]
           when 5; 'Dstr'
           when 4; 'Hi'
@@ -77,7 +77,7 @@ if $ackpattern.nil?
           when 2; 'Avg'
           else '???'
         end
-        pretty_output << '[' + '%4s'.color_by_severity(e[:severity]) % sev_label + "] %s\t" % e[:fuzzytime] +
+        pretty_output << '%4s'.color_by_severity(e[:severity]) % sev_label + " %s\t" % e[:fuzzytime] +
           "%-#{max_hostlen}s\t" % e[:hostname] + "%-#{max_desclen}s".color_by_severity(e[:severity]) % e[:description] +
           "\tAck: %s" % ack
       end
