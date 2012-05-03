@@ -17,7 +17,7 @@ monitor = Zabbix::Monitor.new()
 monitor.hide_maintenance = opts[:maint] unless opts[:maint].nil?
 
 if opts[:ack]
-  puts "hi"
+  monitor.acknowledge(opts[:ack])
 else
   while true
     monitor.get_dashboard()

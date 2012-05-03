@@ -96,86 +96,49 @@ module Zabbix
       print "\e[H\e[2J" # clear terminal screen
       puts pretty_output
     end
-  end
-end
-
-
-=begin
-if $ackpattern.nil?
-  while true
-    max_lines = `tput lines`.to_i - 1
-    eventlist = get_events #TODO: get_events(max_lines)
-    pretty_output = ['Last updated: %s' % Time.now]
-    if eventlist.length != 0
-      max_hostlen = eventlist.each.max { |a,b| a[:hostname].length <=> b[:hostname].length }[:hostname].length
-      max_desclen = eventlist.each.max { |a,b| a[:description].length <=> b[:description].length }[:description].length
+    def acknowledge(pattern = '')
+      puts 'Retrieving list of active unacknowledged triggers that match: '.bold.blue + '%s'.green % pattern, ''
+      filtered = []
+      eventlist = self.get_events()
       eventlist.each do |e|
-        break if pretty_output.length == max_lines
-        ack = "N".red
-        ack = "Y".green if e[:acknowledged] == 1
-        sev_label = case e[:severity]
-          when 5; 'Dstr'
-          when 4; 'Hi'
-          when 3; 'Wrn'
-          when 2; 'Avg'
-          else '???'
+        if e[:hostname] =~ /#{pattern}/ or e[:description] =~ /#{pattern}/
+          event = @api.event.get_last_by_trigger(e[:id])
+          e[:eventid] = event['eventid'].to_i
+          e[:acknowledged] = event['acknowledged'].to_i
+          filtered << e if e[:acknowledged] == 0
         end
-        pretty_output << '%4s'.color_by_severity(e[:severity]) % sev_label + "%s  " % e[:fuzzytime] +
-          "%-#{max_hostlen}s  " % e[:hostname] + "%-#{max_desclen}s".color_by_severity(e[:severity]) % e[:description] +
-          "  Ack: %s" % ack
       end
-    else
-      pretty_output << ['',
-        'The API call returned 0 results. Either your servers are very happy, or ZMonitor is not working correctly.',
-        '', "Please check your dashboard at #{config[$profile]["url"]} to verify activity.", '',
-        'ZMonitor will continue to refresh every ten seconds unless you interrupt it.']
-    end
-    print "\e[H\e[2J" # clear terminal screen
-    puts pretty_output
-    sleep(10)
-  end
-else
-  puts 'Retrieving list of active unacknowledged triggers that match: '.bold.blue + '%s'.green % $ackpattern, ''
-  filtered = []
-  eventlist = get_events()
-  eventlist.each do |e|
-    if e[:hostname] =~ /#{$ackpattern}/ or e[:description] =~ /#{$ackpattern}/
-      event = $monitor.event.get_last_by_trigger(e[:id])
-      e[:eventid] = event['eventid'].to_i
-      e[:acknowledged] = event['acknowledged'].to_i
-      filtered << e if e[:acknowledged] == 0
-    end
-  end
-  abort("No alerts found, so aborting".yellow) if filtered.length == 0
-  filtered.each.with_index do |a,i|
-    message = '%s - %s (%s)'.color_by_severity(a[:severity]) % [ a[:fuzzytime], a[:description], a[:hostname] ]
-    puts "%8d >".bold % (i+1) + message
-  end
+      abort("No alerts found, so aborting".yellow) if filtered.length == 0
+      filtered.each.with_index do |a,i|
+        message = '%s - %s (%s)'.color_by_severity(a[:severity]) % [ a[:fuzzytime], a[:description], a[:hostname] ]
+        puts "%8d >".bold % (i+1) + message
+      end
 
-  print "\n  Select > ".bold
-  input = STDIN.gets.chomp()
+      print "\n  Select > ".bold
+      input = STDIN.gets.chomp()
 
-  no_ack_msg = "Not acknowledging anything."
-  raise StandardError.new('No input. #{no_ack_msg}'.green) if input == ''
-  to_ack = (1..filtered.length).to_a if input == "all" # only string we'll accept
-  raise StandardError.new('Invalid input. #{no_ack_msg}'.red) if to_ack.nil? and (input =~ /^([0-9 ]+)$/).nil?
-  to_ack = input.split.map(&:to_i).sort if to_ack.nil? # Split our input into a sorted array of integers
-  # Let's first check if a value greater than possible was given, to help prevent typos acknowledging the wrong thing
-  to_ack.each { |i| raise StandardError.new('You entered a value greater than %d! Please double check. #{no_ack_msg}'.yellow % filtered.length) if i > filtered.length }
+      no_ack_msg = "Not acknowledging anything."
+      raise StandardError.new('No input. #{no_ack_msg}'.green) if input == ''
+      to_ack = (1..filtered.length).to_a if input == "all" # only string we'll accept
+      raise StandardError.new('Invalid input. #{no_ack_msg}'.red) if to_ack.nil? and (input =~ /^([0-9 ]+)$/).nil?
+      to_ack = input.split.map(&:to_i).sort if to_ack.nil? # Split our input into a sorted array of integers
+      # Let's first check if a value greater than possible was given, to help prevent typos acknowledging the wrong thing
+      to_ack.each { |i| raise StandardError.new('You entered a value greater than %d! Please double check. #{no_ack_msg}'.yellow % filtered.length) if i > filtered.length }
 
-  puts  '', '           Enter an acknowledgement message below, or leave blank for the default.', ''
-  print " Message > ".bold
-  message = STDIN.gets.chomp()
-  puts
+      puts  '', '           Enter an acknowledgement message below, or leave blank for the default.', ''
+      print " Message > ".bold
+      message = STDIN.gets.chomp()
+      puts
 
-  # Finally! Acknowledge EVERYTHING
-  to_ack.each do |a|
-    puts 'Acknowledging: '.green + '%s (%s)' % [ filtered[a-1][:description], filtered[a-1][:hostname] ]
-    if message == ''
-      $monitor.event.acknowledge(filtered[a-1][:eventid])
-    else
-      $monitor.event.acknowledge(filtered[a-1][:eventid], message)
+      # Finally! Acknowledge EVERYTHING
+      to_ack.each do |a|
+        puts 'Acknowledging: '.green + '%s (%s)' % [ filtered[a-1][:description], filtered[a-1][:hostname] ]
+        if message == ''
+          @api.event.acknowledge(filtered[a-1][:eventid])
+        else
+          @api.event.acknowledge(filtered[a-1][:eventid], message)
+        end
+      end
     end
   end
 end
-=end
