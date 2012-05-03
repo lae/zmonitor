@@ -2,7 +2,6 @@
 
 require 'rubygems'
 require 'colored'
-require 'yaml'
 require 'optparse'
 
 require_relative 'zmonitor/api'
