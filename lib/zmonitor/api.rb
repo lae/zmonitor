@@ -1,6 +1,5 @@
 #!/usr/bin/ruby
 
-require 'rubygems'
 require 'json'
 require 'net/http'
 require 'net/https'
@@ -12,9 +11,9 @@ module Zabbix
 end
 
 # load up the different API classes and methods
-require_relative 'api/event'
-require_relative 'api/trigger'
-require_relative 'api/user'
+require 'zmonitor/api/event'
+require 'zmonitor/api/trigger'
+require 'zmonitor/api/user'
 
 module Zabbix
   class API
@@ -92,7 +91,6 @@ module Zabbix
 
       return parsed_response['result']
     end
-
   end
 end
 

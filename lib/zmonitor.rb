@@ -1,10 +1,9 @@
 #!/usr/bin/ruby
 
-require 'rubygems'
 require 'colored'
 
-require_relative 'zmonitor/api'
-require_relative 'zmonitor/misc'
+require 'zmonitor/api'
+require 'zmonitor/misc'
 
 module Zabbix
   class Monitor
@@ -67,8 +66,9 @@ module Zabbix
     end
     def get_dashboard()
       max_lines = `tput lines`.to_i - 1
+      cols = `tput cols`.to_i
       eventlist = self.get_events() #TODO: get_events(max_lines)
-      pretty_output = ['Last updated: %s' % Time.now]
+      pretty_output = ["%-#{cols/2}s".cyan_on_blue % " Zmonitor Dashboard" + "%#{cols/2}s".cyan_on_blue % "Last updated: #{Time.now}"]
       if eventlist.length != 0
         max_hostlen = eventlist.each.max { |a,b| a[:hostname].length <=> b[:hostname].length }[:hostname].length
         max_desclen = eventlist.each.max { |a,b| a[:description].length <=> b[:description].length }[:description].length
@@ -111,10 +111,11 @@ module Zabbix
       abort("No alerts found, so aborting".yellow) if filtered.length == 0
       filtered.each.with_index do |a,i|
         message = '%s - %s (%s)'.color_by_severity(a[:severity]) % [ a[:fuzzytime], a[:description], a[:hostname] ]
-        puts "%8d >".bold % (i+1) + message
+        puts "%4d >".bold % (i+1) + message
       end
 
-      print "\n  Select > ".bold
+      puts '', '       Selection - enter "all", or a set of numbers listed above separated by spaces.'
+      print ' Sel > '.bold
       input = STDIN.gets.chomp()
 
       no_ack_msg = "Not acknowledging anything."
@@ -125,8 +126,8 @@ module Zabbix
       # Let's first check if a value greater than possible was given, to help prevent typos acknowledging the wrong thing
       to_ack.each { |i| raise StandardError.new('You entered a value greater than %d! Please double check. #{no_ack_msg}'.yellow % filtered.length) if i > filtered.length }
 
-      puts  '', '           Enter an acknowledgement message below, or leave blank for the default.', ''
-      print " Message > ".bold
+      puts  '', '       Message   - enter an acknowledgement message below, or leave blank for the default.'
+      print ' Msg > '.bold
       message = STDIN.gets.chomp()
       puts
 
