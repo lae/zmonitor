@@ -8,6 +8,14 @@ require 'zmonitor/misc'
 module Zabbix
   class Monitor
     attr_accessor :api, :hide_maintenance
+
+    class BadTokenError < StandardError
+      attr_reader :message
+      def initialize(reason, tokenpath)
+        @message = reason
+        File.delete(tokenpath)
+      end
+    end
     def initialize()
       @hide_maintenance = 0
       url_path = File.expand_path("~/.zmonitor-server")
@@ -40,6 +48,7 @@ module Zabbix
         @api.token = @api.user.login(user, password)
         File.new(token_path, "w").write(@api.token)
       end
+      raise BadTokenError.new("Token is empty!", token_path) if @api.token == ''
     end
     def get_events()
       current_time = Time.now.to_i # to be used in getting event durations, but it really depends on the master
