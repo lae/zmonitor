@@ -9,26 +9,33 @@ module Zabbix
   class Monitor
     attr_accessor :api, :hide_maintenance
 
-    class BadTokenError < StandardError
+    class EmptyFileError < StandardError
       attr_reader :message
-      def initialize(reason, tokenpath)
+      def initialize(reason, file)
         @message = reason
-        File.delete(tokenpath)
+        puts "[INFO] Deleting #{file}"
+        File.delete(file)
       end
     end
     def initialize()
       @hide_maintenance = 0
-      url_path = File.expand_path("~/.zmonitor-server")
-      if File.exists?(url_path)
-        url = File.open(url_path).read()
-      else
-        puts "Where is your Zabbix located? (please include https/http - for example, https://localhost)"
-        url = "#{STDIN.gets.chomp()}/api_jsonrpc.php"
-        File.new(url_path, "w").write(url)
-      end
-      @api = Zabbix::API.new(url)
+      uri = self.check_uri()
+      @api = Zabbix::API.new(uri)
       self.check_login
       @api.whoami = @api.user.get_fullname()
+    end
+    def check_uri()
+      uri_path = File.expand_path("~/.zmonitor-server")
+      if File.exists?(uri_path)
+        uri = File.open(uri_path).read()
+      else
+        puts "Where is your Zabbix located? (please include https/http - for example, https://localhost)"
+        uri = "#{STDIN.gets.chomp()}/api_jsonrpc.php"
+        File.new(uri_path, "w").write(uri)
+      end
+      puts "Okay, using #{uri}."
+      raise EmptyFileError.new('URI is empty for some reason', uri_path) if uri == '' || uri.nil?
+      return uri
     end
     def check_login()
       token_path = File.expand_path("~/.zmonitor-token")
@@ -48,7 +55,7 @@ module Zabbix
         @api.token = @api.user.login(user, password)
         File.new(token_path, "w").write(@api.token)
       end
-      raise BadTokenError.new("Token is empty!", token_path) if @api.token == ''
+      raise EmptyFileError.new("Token is empty!", token_path) if @api.token == ''
     end
     def get_events()
       current_time = Time.now.to_i # to be used in getting event durations, but it really depends on the master
