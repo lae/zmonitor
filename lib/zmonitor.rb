@@ -21,7 +21,7 @@ module Zabbix
       @hide_maintenance = 0
       uri = self.check_uri()
       @api = Zabbix::API.new(uri)
-      self.check_login
+      @api.token = self.check_login
       @api.whoami = @api.user.get_fullname()
     end
     def check_uri()
@@ -42,6 +42,7 @@ module Zabbix
       if File.exists?(token_path)
         @api.token = File.open(token_path).read()
       else
+        f = File.new(token_path, "w+")
         print "Please enter your Zabbix username: "
         user = STDIN.gets.chomp()
         print "Please enter your Zabbix password: "
@@ -52,10 +53,12 @@ module Zabbix
           system "stty echo"
           puts
         end
-        @api.token = @api.user.login(user, password)
-        File.new(token_path, "w").write(@api.token)
+        token = @api.user.login(user, password).chomp
+        f.write(token)
+        f.close
       end
-      raise EmptyFileError.new("Token is empty!", token_path) if @api.token == ''
+      raise EmptyFileError.new("Token is empty!", token_path) if token == '' || token.nil?
+      return token
     end
     def get_events()
       current_time = Time.now.to_i # to be used in getting event durations, but it really depends on the master
