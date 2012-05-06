@@ -138,12 +138,12 @@ module Zabbix
       input = STDIN.gets.chomp()
 
       no_ack_msg = "Not acknowledging anything."
-      raise StandardError.new("No input. #{no_ack_msg}".green) if input == ''
+      raise StandardError.new('No input. #{no_ack_msg}'.green) if input == ''
       to_ack = (1..filtered.length).to_a if input == "all" # only string we'll accept
-      raise StandardError.new("Invalid input. #{no_ack_msg}".red) if to_ack.nil? and (input =~ /^([0-9 ]+)$/).nil?
+      raise StandardError.new('Invalid input. #{no_ack_msg}'.red) if to_ack.nil? and (input =~ /^([0-9 ]+)$/).nil?
       to_ack = input.split.map(&:to_i).sort if to_ack.nil? # Split our input into a sorted array of integers
       # Let's first check if a value greater than possible was given, to help prevent typos acknowledging the wrong thing
-      to_ack.each { |i| raise StandardError.new("You entered a value greater than %d! Please double check. #{no_ack_msg}".yellow % filtered.length) if i > filtered.length }
+      to_ack.each { |i| raise StandardError.new('You entered a value greater than %d! Please double check. #{no_ack_msg}'.yellow % filtered.length) if i > filtered.length }
 
       puts  '', '       Message   - enter an acknowledgement message below, or leave blank for the default.'
       print ' Msg > '.bold
@@ -159,10 +159,6 @@ module Zabbix
           @api.event.acknowledge(filtered[a-1][:eventid], message)
         end
       end
-    end
-    # Save a time offset between the local computer and the Zabbix master
-    def calibrate()
-      #
     end
   end
 end
