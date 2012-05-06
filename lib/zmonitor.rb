@@ -40,7 +40,7 @@ module Zabbix
     def check_login()
       token_path = File.expand_path("~/.zmonitor-token")
       if File.exists?(token_path)
-        @api.token = File.open(token_path).read()
+        token = File.open(token_path).read()
       else
         f = File.new(token_path, "w+")
         print "Please enter your Zabbix username: "
