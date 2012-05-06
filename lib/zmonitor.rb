@@ -160,9 +160,5 @@ module Zabbix
         end
       end
     end
-    # Save a time offset between the local computer and the Zabbix master
-    def calibrate()
-      #
-    end
   end
 end
