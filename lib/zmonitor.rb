@@ -23,7 +23,6 @@ module Zabbix
       uri = self.check_uri()
       @api = Zabbix::API.new(uri)
       @api.token = self.check_login
-      @api.whoami = @api.user.get_fullname()
     end
     def check_uri()
       uri_path = File.expand_path("~/.zmonitor-server")
@@ -36,10 +35,10 @@ module Zabbix
         f.write(uri)
         f.close
       end
-      if uri !=~ /^https?:\/\/.*\/api_jsonrpc\.php/
-        puts "The URI we're using is invalid, sir. Resetting..."
-        check_uri()
-      end
+      #if uri !=~ /^https?:\/\/.*\/api_jsonrpc\.php/
+        #puts "The URI we're using is invalid, sir. Resetting..."
+        #check_uri()
+      #end
       puts "Okay, using #{uri}."
       raise EmptyFileError.new('URI is empty for some reason', uri_path) if uri == '' || uri.nil?
       return uri
@@ -153,6 +152,7 @@ module Zabbix
       to_ack.each do |a|
         puts 'Acknowledging: '.green + '%s (%s)' % [ filtered[a-1][:description], filtered[a-1][:hostname] ]
         if message == ''
+          @api.whoami = @api.user.get_fullname()
           @api.event.acknowledge(filtered[a-1][:eventid])
         else
           @api.event.acknowledge(filtered[a-1][:eventid], message)

@@ -71,7 +71,7 @@ module Zabbix
 
       # Send request
       begin
-        puts "[INFO] Attempting to send request => #{request}" if @verbose
+        puts "[INFO] Attempting to send request => #{request} if @verbose
         response = connection.request(request)
       rescue ::SocketError => e
         puts "[ERROR] Could not complete request: SocketError => #{e.message}" if @verbose
