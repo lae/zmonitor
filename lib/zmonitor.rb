@@ -97,16 +97,8 @@ module Zabbix
           break if pretty_output.length == max_lines
           ack = "N".red
           ack = "Y".green if e[:acknowledged] == 1
-          sev_label = case e[:severity]
-            when 5; 'Dstr'
-            when 4; 'Hi'
-            when 3; 'Wrn'
-            when 2; 'Avg'
-            else '???'
-          end
-          pretty_output << '%4s'.color_by_severity(e[:severity]) % sev_label + "%s  " % e[:fuzzytime] +
-            "%-#{max_hostlen}s  " % e[:hostname] + "%-#{max_desclen}s".color_by_severity(e[:severity]) % e[:description] +
-            "  Ack:%s" % ack
+          pretty_output << "%s " % e[:fuzzytime] + "%-#{max_hostlen}s " % e[:hostname] +
+          "%-#{max_desclen}s".color_by_severity(e[:severity]) % e[:description] + " %s" % ack
         end
       else
         pretty_output << ['',
