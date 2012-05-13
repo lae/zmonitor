@@ -89,7 +89,7 @@ module Zabbix
       max_lines = `tput lines`.to_i - 1
       cols = `tput cols`.to_i
       eventlist = self.get_events() #TODO: get_events(max_lines)
-      pretty_output = ["%-#{cols/2}s".cyan_on_blue % " Zmonitor Dashboard" + "%#{cols/2}s".cyan_on_blue % "Last updated: #{Time.now}"]
+      pretty_output = ["%-#{cols/2}s".cyan_on_blue % "Last updated: #{Time.now}" + "%#{cols/2}s".cyan_on_blue % " Zmonitor Dashboard"]
       if eventlist.length != 0
         max_hostlen = eventlist.each.max { |a,b| a[:hostname].length <=> b[:hostname].length }[:hostname].length
         max_desclen = eventlist.each.max { |a,b| a[:description].length <=> b[:description].length }[:description].length
