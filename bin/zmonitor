@@ -23,7 +23,11 @@ elsif opts[:once]
   monitor.get_dashboard('full')
 else
   while true
-    monitor.get_dashboard()
-    sleep 10
+    begin
+      monitor.get_dashboard()
+      sleep 10
+    rescue SystemExit, Interrupt
+      abort("\nBye.")
+    end
   end
 end
