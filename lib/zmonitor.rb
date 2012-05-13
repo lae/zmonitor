@@ -29,9 +29,11 @@ module Zabbix
       if File.exists?(uri_path)
         uri = File.open(uri_path).read()
       else
+      f = File.new(uri_path, "w+")
         puts "Where is your Zabbix located? (please include https/http - for example, https://localhost)"
         uri = "#{STDIN.gets.chomp()}/api_jsonrpc.php"
-        File.new(uri_path, "w").write(uri)
+        f.write(uri)
+        f.close
       end
       puts "Okay, using #{uri}."
       raise EmptyFileError.new('URI is empty for some reason', uri_path) if uri == '' || uri.nil?
@@ -159,6 +161,10 @@ module Zabbix
           @api.event.acknowledge(filtered[a-1][:eventid], message)
         end
       end
+    end
+    # Save a time offset between the local computer and the Zabbix master
+    def calibrate()
+      #
     end
   end
 end

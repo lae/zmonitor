@@ -8,6 +8,8 @@ OptionParser.new do |o|
   o.banner = "usage: zmonitor [options]"
   o.on('--ack MATCH', '-a', "Acknowledge current events that match a pattern MATCH. No wildcards.") { |a| opts[:ack] = a.tr('^ A-Za-z0-9[]{}()|,-', '') }
   o.on('--disable-maintenance', '-m', "Filter out servers marked as being in maintenance.") { |m| opts[:maint] = 1 }
+  o.on('--batch', '-b', 'Batch mode.' { |b| opts[:batch] = 1 }
+  o.on('-n', 'n' { |n| opts[:numtimes] = n }
   o.on('-h', 'Show this help') { puts '',o,''; exit }
   o.parse!
 end
