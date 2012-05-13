@@ -39,7 +39,7 @@ module Zabbix
         #puts "The URI we're using is invalid, sir. Resetting..."
         #check_uri()
       #end
-      puts "Okay, using #{uri}."
+      #puts "Okay, using #{uri}."
       raise EmptyFileError.new('URI is empty for some reason', uri_path) if uri == '' || uri.nil?
       return uri
     end
@@ -93,7 +93,8 @@ module Zabbix
       max_lines = `tput lines`.to_i - 1
       cols = `tput cols`.to_i
       eventlist = self.get_events() #TODO: get_events(max_lines)
-      pretty_output = ["%-#{cols/2}s".cyan_on_blue % "Last updated: #{Time.now}" + "%#{cols/2}s".cyan_on_blue % " Zmonitor Dashboard"]
+      pretty_output = []
+      pretty_output << ["Last updated: %8s%#{cols-40}sZmonitor Dashboard".cyan_on_blue % [Time.now.strftime('%T'),'']] if format != 'full'
       if eventlist.length != 0
         max_hostlen = eventlist.each.max { |a,b| a[:hostname].length <=> b[:hostname].length }[:hostname].length
         max_desclen = eventlist.each.max { |a,b| a[:description].length <=> b[:description].length }[:description].length
