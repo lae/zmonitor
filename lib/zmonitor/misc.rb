@@ -21,9 +21,9 @@ class String
   def color_by_severity( level = 0 )
     case level
       when 5; self.bold.red
-      when 4; self.red
-      when 3; self.yellow
-      when 2; self.green
+      when 4; self.yellow
+      when 3; self.green
+      when 2; self.cyan
       else self
     end
   end
