@@ -9,6 +9,7 @@ Rubygems: json (json_pure is fine), colored
     zmonitor [options]
         -a, --ack MATCH                  Acknowledge current events that match a pattern MATCH. No wildcards.
         -m, --disable-maintenance        Filter out servers marked as being in maintenance.
+        -1, --print-once                 Only check Zabbix once and print out all alerts.
         -h                               Show this help
 
 ## Setting Up
@@ -16,7 +17,7 @@ Rubygems: json (json_pure is fine), colored
 Build the gem and install it:
 
     gem build zmonitor.gemspec
-    gem install ./zmonitor-1.0.6.gem
+    gem install zmonitor-1.0.9.gem
 
 And run:
 
@@ -26,3 +27,7 @@ You'll be prompted initially for the server, and your login information. If you 
 different, just remove the associated files in your home directory:
 
     rm ~/.zmonitor-token ~/.zmonitor-server
+
+## TODO
+* Fixup weird debugging / add verbose flag.
+* Move the output into an ncurses layout

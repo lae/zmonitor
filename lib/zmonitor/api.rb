@@ -4,6 +4,8 @@ require 'json'
 require 'net/http'
 require 'net/https'
 
+abort("Could not load API libraries. Did you install a JSON library? (json / json_pure / json-jruby)") unless Object.const_defined?(:JSON)
+
 # create the module/class stub so we can require the API class files properly
 module Zabbix
   class API
@@ -30,10 +32,6 @@ module Zabbix
       @user = Zabbix::User.new(self)
       @event = Zabbix::Event.new(self)
       @trigger = Zabbix::Trigger.new(self)
-
-      # Login, and save identification information for this object
-      #@authtoken = self.user.login(user, password)
-      #@whoami = self.user.get_fullname()
     end
 
     # More specific error names, may add extra handling procedures later

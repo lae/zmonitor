@@ -29,9 +29,9 @@ module Zabbix
       if File.exists?(uri_path)
         uri = File.open(uri_path).read()
       else
-      f = File.new(uri_path, "w+")
         puts "Where is your Zabbix located? (please include https/http - for example, https://localhost)"
         uri = "#{STDIN.gets.chomp()}/api_jsonrpc.php"
+        f = File.new(uri_path, "w+")
         f.write(uri)
         f.close
       end
@@ -44,7 +44,6 @@ module Zabbix
       if File.exists?(token_path)
         token = File.open(token_path).read()
       else
-        f = File.new(token_path, "w+")
         print "Please enter your Zabbix username: "
         user = STDIN.gets.chomp()
         print "Please enter your Zabbix password: "
@@ -56,6 +55,7 @@ module Zabbix
           puts
         end
         token = @api.user.login(user, password).chomp
+        f = File.new(token_path, "w+")
         f.write(token)
         f.close
       end
