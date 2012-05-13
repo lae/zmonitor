@@ -85,7 +85,7 @@ module Zabbix
       # Sort the events decreasing by severity, and then descending by duration (smaller timestamps at top)
       return current_events.sort_by { |t| [ -t[:severity], t[:time] ] }
     end
-    def get_dashboard()
+    def get_dashboard(format = '')
       max_lines = `tput lines`.to_i - 1
       cols = `tput cols`.to_i
       eventlist = self.get_events() #TODO: get_events(max_lines)
@@ -94,7 +94,7 @@ module Zabbix
         max_hostlen = eventlist.each.max { |a,b| a[:hostname].length <=> b[:hostname].length }[:hostname].length
         max_desclen = eventlist.each.max { |a,b| a[:description].length <=> b[:description].length }[:description].length
         eventlist.each do |e|
-          break if pretty_output.length == max_lines
+          break if pretty_output.length == max_lines and format != 'full'
           ack = "N".red
           ack = "Y".green if e[:acknowledged] == 1
           pretty_output << "%s " % e[:fuzzytime] + "%-#{max_hostlen}s " % e[:hostname] +
@@ -106,7 +106,7 @@ module Zabbix
           '', "Please check your dashboard at #{@api.server.to_s.gsub(/\/api_jsonrpc.php/, '')} to verify activity.", '',
           'ZMonitor will continue to refresh every ten seconds unless you interrupt it.']
       end
-      print "\e[H\e[2J" # clear terminal screen
+      print "\e[H\e[2J" if format != 'full' # clear terminal screen
       puts pretty_output
     end
     def acknowledge(pattern = '')

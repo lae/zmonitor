@@ -8,7 +8,8 @@ OptionParser.new do |o|
   o.banner = "usage: zmonitor [options]"
   o.on('--ack MATCH', '-a', "Acknowledge current events that match a pattern MATCH. No wildcards.") { |a| opts[:ack] = a.tr('^ A-Za-z0-9[]{}()|,-', '') }
   o.on('--disable-maintenance', '-m', "Filter out servers marked as being in maintenance.") { |m| opts[:maint] = 1 }
-
+  o.on('--print-once', '-1', "Only check Zabbix once and print out all alerts.") { |p| opts[:once] = 1 }
+  o.on('-n', '') { |n| opts[:numtimes] = n }
   o.on('-h', 'Show this help') { puts '',o,''; exit }
   o.parse!
 end
@@ -18,6 +19,8 @@ monitor.hide_maintenance = opts[:maint] unless opts[:maint].nil?
 
 if opts[:ack]
   monitor.acknowledge(opts[:ack])
+elsif opts[:once]
+  monitor.get_dashboard('full')
 else
   while true
     monitor.get_dashboard()
