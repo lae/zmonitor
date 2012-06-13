@@ -23,12 +23,13 @@ if opts[:ack]
 elsif opts[:once]
   monitor.get_dashboard('full')
 else
+  system "stty -echo"
+  Signal.trap("SIGINT") do
+    system "stty echo" 
+    abort  
+  end
   while true
-    begin
-      monitor.get_dashboard()
-      sleep 10
-    rescue SystemExit, Interrupt
-      abort("\nBye.")
-    end
+    monitor.get_dashboard()
+    0.upto(20) { sleep 0.5 }
   end
 end
