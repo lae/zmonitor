@@ -8,7 +8,7 @@ OptionParser.new do |o|
   o.banner = "usage: zmonitor [options]"
   o.on('--ack MATCH', '-a', "Acknowledge current events that match a pattern MATCH. No wildcards.") { |a| opts[:ack] = a.tr('^ A-Za-z0-9[]{}()|,-.', '') }
   o.on('--disable-maintenance', '-m', "Filter out servers marked as being in maintenance.") { |m| opts[:maint] = 1 }
-  o.on('--hide-acknowledged-alerts', "Don't show events that have already been acknowledged.") { |h| opts[:hideack] = 1 }
+  o.on('--hide-acknowledged-alerts', '-H', "Don't show events that have already been acknowledged.") { |h| opts[:hideack] = 1 }
   o.on('--print-once', '-1', "Only check Zabbix once and print out all alerts.") { |p| opts[:once] = 1 }
   o.on('-h', 'Show this help') { puts '',o,''; exit }
   o.parse!
