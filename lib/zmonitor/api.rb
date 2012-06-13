@@ -58,6 +58,7 @@ module Zabbix
 
       # Open TCP connection to Zabbix master
       connection = Net::HTTP.new(@server.host, @server.port)
+      connection.timeout = 300
       # Check to see if we're connecting via SSL
       if @server.scheme == 'https' then
         connection.use_ssl = true
