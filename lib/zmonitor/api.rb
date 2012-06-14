@@ -58,7 +58,7 @@ module Zabbix
 
       # Open TCP connection to Zabbix master
       connection = Net::HTTP.new(@server.host, @server.port)
-      connection.timeout = 300
+      connection.read_timeout = 300
       # Check to see if we're connecting via SSL
       if @server.scheme == 'https' then
         connection.use_ssl = true
@@ -77,6 +77,9 @@ module Zabbix
       rescue ::SocketError => e
         puts "[ERROR] Could not complete request: SocketError => #{e.message}" if @verbose
         raise SocketError.new(e.message)
+      rescue Timeout::Error => e
+        puts "[ERROR] Timed out from Zabbix master. Is it being funky? => #{e.message}"
+        exit
       end
 
       puts "[INFO] Received response: #{response}" if @verbose
