@@ -8,7 +8,8 @@ OptionParser.new do |o|
   o.banner = "usage: zmonitor [options]"
   o.on('--ack MATCH', '-a', "Acknowledge current events that match a pattern MATCH. No wildcards.") { |a| opts[:ack] = a.tr('^ A-Za-z0-9[]{}()|,-.', '') }
   o.on('--disable-maintenance', '-m', "Filter out servers marked as being in maintenance.") { |m| opts[:maint] = 1 }
-  o.on('--minimum_severity PRIORITY', '-M', "Show events with a priority greater than M. Accepted values are 0 to 5. Default is 2.") { |ms| opts[:min_severity] = ms.tr('^0-5', '') }
+  o.on('--minimum-severity PRIORITY', '-M', "Show events with a priority greater than M. Accepted values are 0 to 5. Default is 2.") { |ms| opts[:min_severity] = ms.tr('^0-5', '') }
+  o.on('--priority-list LIST', '-l', "Comma-delimited list of what priority events to show.") { |l| opts[:priority_list] = l.tr('^,0-5', '') }
   o.on('--hide-acknowledged-alerts', '-H', "Don't show events that have already been acknowledged.") { |h| opts[:hideack] = 1 }
   o.on('--print-once', '-1', "Only check Zabbix once and print out all alerts.") { |p| opts[:once] = 1 }
   o.on('-h', 'Show this help') { puts '',o,''; exit }
@@ -19,6 +20,7 @@ monitor = Zabbix::Monitor.new()
 monitor.hide_maintenance = opts[:maint] unless opts[:maint].nil?
 monitor.hide_acknowledged_alerts = opts[:hideack] unless opts[:hideack].nil?
 monitor.min_severity = opts[:min_severity] unless opts[:min_severity].nil? and opts[:min_severity] != ''
+monitor.priority_list = opts[:priority_list] unless opts[:priority_list].nil?
 
 if opts[:ack]
   monitor.acknowledge(opts[:ack])
