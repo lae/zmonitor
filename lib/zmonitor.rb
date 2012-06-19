@@ -7,7 +7,7 @@ require 'zmonitor/misc'
 
 module Zabbix
   class Monitor
-    attr_accessor :api, :hide_maintenance, :hide_acknowledged_alerts
+    attr_accessor :api, :hide_maintenance, :hide_acknowledged_alerts, :min_severity
 
     class EmptyFileError < StandardError
       attr_reader :message
