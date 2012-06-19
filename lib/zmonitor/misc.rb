@@ -24,6 +24,7 @@ class String
       when 4; self.yellow
       when 3; self.green
       when 2; self.cyan
+      when 1; self.bold.white
       else self
     end
   end

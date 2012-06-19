@@ -20,6 +20,7 @@ module Zabbix
     def initialize()
       @hide_maintenance = 0
       @hide_acknowledged_alerts = 0
+      @min_severity = '2'
       uri = self.check_uri()
       @api = Zabbix::API.new(uri)
       @api.token = self.check_login
@@ -68,8 +69,8 @@ module Zabbix
     end
     def get_events()
       current_time = Time.now.to_i # to be used in getting event durations, but it really depends on the master
-      triggers = unacked_triggers = @api.trigger.get_active(2, @hide_maintenance, @hide_acknowledged_alerts) # Call the API for a list of active triggers
-      unacked_triggers = @api.trigger.get_active(2, @hide_maintenance, 1) if @hide_acknowledged_alerts == 0 # Call it again to get just those that are unacknowledged
+      triggers = unacked_triggers = @api.trigger.get_active(@min_severity, @hide_maintenance, @hide_acknowledged_alerts) # Call the API for a list of active triggers
+      unacked_triggers = @api.trigger.get_active(@min_severity, @hide_maintenance, 1) if @hide_acknowledged_alerts == 0 # Call it again to get just those that are unacknowledged
       current_events = []
       triggers.each do |t|
         next if t['hosts'][0]['status'] == '1' or t['items'][0]['status'] == '1' # skip disabled items/hosts that the api call returns
