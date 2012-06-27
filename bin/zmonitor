@@ -35,6 +35,6 @@ else
       0.upto(20) { sleep 0.5 }
     end
   ensure
-    system "stty -echo"
+    system "stty echo"
   end
 end
